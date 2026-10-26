@@ -1,0 +1,124 @@
+﻿<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suki Mini POS</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: #202923; font-family: system-ui, sans-serif; line-height: 1.6; }
+    main { max-width: 1040px; margin: auto; padding: 32px 20px; }
+    header { margin-bottom: 32px; }
+    h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.5rem); letter-spacing: -.04em; }
+    h2 { margin: 0 0 20px; font-size: 1.3rem; }
+    p { margin: 4px 0; }
+    .muted { color: #5b665f; }
+    .layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; align-items: start; }
+    .menu { display: grid; gap: 12px; }
+    .menu-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; border: 1px solid #dce3de; border-radius: 14px; }
+    h3 { margin: 0; font-size: 1.1rem; }
+    button { min-height: 48px; padding: 10px 18px; border: 0; border-radius: 9px; font: inherit; font-weight: 600; cursor: pointer; }
+    .add { background: #196b45; color: white; white-space: nowrap; }
+    .add:hover { background: #105333; }
+    button:focus-visible { outline: 3px solid #b36012; outline-offset: 4px; }
+    .cart { padding: 24px; border: 1px solid #dce3de; border-radius: 16px; }
+    #cart-items { list-style: none; margin: 0; padding: 0; }
+    .cart-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid #e5eae7; }
+    .cart-row strong { white-space: nowrap; }
+    #empty-cart { padding: 24px 0; color: #5b665f; text-align: center; }
+    [hidden] { display: none !important; }
+    .total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 24px 0; }
+    #total { font-size: 1.7rem; color: #196b45; font-weight: 750; }
+    #clear-cart { width: 100%; background: #f1f4f2; color: #35473b; border: 1px solid #dce3de; }
+    #clear-cart:hover { background: #e4ebe6; }
+    @media (max-width: 700px) { .layout { grid-template-columns: 1fr; gap: 28px; } main { padding: 24px 16px; } .cart { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Suki Mini POS</h1>
+      <p class="muted">เลือกเมนู รับออร์เดอร์ และสรุปยอด</p>
+    </header>
+    <div class="layout">
+      <section aria-labelledby="menu-title">
+        <h2 id="menu-title">เมนูอาหารและเครื่องดื่ม</h2>
+        <div class="menu">
+          <article class="menu-item">
+            <div><h3>ชุดหมู</h3><p class="muted">199 บาท</p></div>
+            <button type="button" class="add" data-product="pork" aria-label="เพิ่มชุดหมู">+ เพิ่ม</button>
+          </article>
+          <article class="menu-item">
+            <div><h3>ชุดเนื้อ</h3><p class="muted">249 บาท</p></div>
+            <button type="button" class="add" data-product="beef" aria-label="เพิ่มชุดเนื้อ">+ เพิ่ม</button>
+          </article>
+          <article class="menu-item">
+            <div><h3>น้ำดื่ม</h3><p class="muted">20 บาท</p></div>
+            <button type="button" class="add" data-product="water" aria-label="เพิ่มน้ำดื่ม">+ เพิ่ม</button>
+          </article>
+        </div>
+      </section>
+      <section class="cart" aria-labelledby="cart-title">
+        <h2 id="cart-title">ตะกร้าออร์เดอร์</h2>
+        <div aria-live="polite" aria-atomic="true">
+          <p id="empty-cart">ยังไม่มีสินค้าในตะกร้า</p>
+          <ul id="cart-items"></ul>
+          <div class="total"><span>ยอดรวม</span><output id="total">0 บาท</output></div>
+        </div>
+        <button type="button" id="clear-cart">ล้างตะกร้า</button>
+      </section>
+    </div>
+  </main>
+  <script>
+    'use strict';
+    const products = {
+      pork: { name: 'ชุดหมู', price: 199 },
+      beef: { name: 'ชุดเนื้อ', price: 249 },
+      water: { name: 'น้ำดื่ม', price: 20 }
+    };
+    const cart = new Map();
+    const cartItems = document.getElementById('cart-items');
+    const emptyCart = document.getElementById('empty-cart');
+    const totalOutput = document.getElementById('total');
+    const formatBaht = amount => `${amount.toLocaleString('th-TH')} บาท`;
+
+    function renderCart() {
+      cartItems.replaceChildren();
+      let total = 0;
+      for (const [id, quantity] of cart) {
+        const product = products[id];
+        const subtotal = product.price * quantity;
+        total += subtotal;
+        const row = document.createElement('li');
+        row.className = 'cart-row';
+        const details = document.createElement('div');
+        const name = document.createElement('strong');
+        name.textContent = product.name;
+        const count = document.createElement('p');
+        count.className = 'muted';
+        count.textContent = `${formatBaht(product.price)} × ${quantity}`;
+        details.append(name, count);
+        const amount = document.createElement('strong');
+        amount.textContent = formatBaht(subtotal);
+        row.append(details, amount);
+        cartItems.append(row);
+      }
+      emptyCart.hidden = cart.size > 0;
+      totalOutput.textContent = formatBaht(total);
+    }
+
+    document.querySelectorAll('[data-product]').forEach(button => {
+      button.addEventListener('click', () => {
+        const id = button.dataset.product;
+        cart.set(id, (cart.get(id) || 0) + 1);
+        renderCart();
+      });
+    });
+    document.getElementById('clear-cart').addEventListener('click', () => {
+      cart.clear();
+      renderCart();
+    });
+    renderCart();
+  </script>
+</body>
+</html>
